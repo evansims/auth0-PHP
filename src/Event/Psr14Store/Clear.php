@@ -10,10 +10,11 @@ use Auth0\SDK\Contract\StoreInterface;
 final class Clear implements Auth0Event
 {
     private StoreInterface $store;
+
     private ?bool $success = null;
 
     public function __construct(
-        StoreInterface $store
+        StoreInterface $store,
     ) {
         $this->store = $store;
     }
@@ -29,9 +30,10 @@ final class Clear implements Auth0Event
     }
 
     public function setSuccess(
-        ?bool $success
+        ?bool $success,
     ): self {
         $this->success = $success;
+
         return $this;
     }
 }

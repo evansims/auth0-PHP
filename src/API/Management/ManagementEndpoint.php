@@ -22,10 +22,10 @@ abstract class ManagementEndpoint
     /**
      * ManagementEndpoint constructor.
      *
-     * @param HttpClient $httpClient HttpClient instance to use.
+     * @param  HttpClient  $httpClient  httpClient instance to use
      */
     public function __construct(
-        HttpClient $httpClient
+        HttpClient $httpClient,
     ) {
         $this->httpClient = $httpClient;
     }

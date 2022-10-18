@@ -12,7 +12,7 @@ final class Destruct implements Auth0Event
     private StoreInterface $store;
 
     public function __construct(
-        StoreInterface $store
+        StoreInterface $store,
     ) {
         $this->store = $store;
     }

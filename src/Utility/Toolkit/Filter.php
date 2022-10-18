@@ -20,12 +20,12 @@ final class Filter
     private array $subjects;
 
     /**
-     * Filter Constructor
+     * Filter Constructor.
      *
-     * @param array<mixed> $subjects An array of values to process.
+     * @param  array<mixed>  $subjects  an array of values to process
      */
     public function __construct(
-        array $subjects
+        array $subjects,
     ) {
         $this->subjects = $subjects;
     }

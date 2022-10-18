@@ -21,10 +21,10 @@ final class ArrayFilter
     /**
      * StringFilter constructor.
      *
-     * @param array<array<mixed>> $subjects An array of arrays to filter.
+     * @param  array<array<mixed>>  $subjects  an array of arrays to filter
      */
     public function __construct(
-        array $subjects
+        array $subjects,
     ) {
         $this->subjects = $subjects;
     }
@@ -39,8 +39,9 @@ final class ArrayFilter
         $results = [];
 
         foreach ($this->subjects as $subject) {
-            if ($subject === []) {
+            if ([] === $subject) {
                 $results[] = null;
+
                 continue;
             }
 
@@ -60,8 +61,9 @@ final class ArrayFilter
         $results = [];
 
         foreach ($this->subjects as $subject) {
-            if ($subject === []) {
+            if ([] === $subject) {
                 $results[] = null;
+
                 continue;
             }
 
@@ -82,18 +84,19 @@ final class ArrayFilter
 
         foreach ($this->subjects as $subject) {
             /** @var array<mixed>|null $subject */
-            if (! is_array($subject) || $subject === []) {
+            if (! \is_array($subject) || [] === $subject) {
                 $results[] = [];
+
                 continue;
             }
 
             $results[] = array_map(static function ($val) {
-                if (is_string($val)) {
+                if (\is_string($val)) {
                     return (new StringFilter([$val]))->trim()[0];
                 }
 
                 return $val;
-            }, array_filter($subject, static fn ($val) => $val !== null));
+            }, array_filter($subject, static fn ($val) => null !== $val));
         }
 
         return $results;
@@ -102,28 +105,27 @@ final class ArrayFilter
     /**
      * Throw an error if all the provided values are null. Otherwise, return the first non-null value.
      *
-     * @param \Throwable $exception An exception to throw if all values are null.
-     *
+     * @param  \Throwable  $exception  an exception to throw if all values are null
      * @return array<mixed>
      *
-     * @throws \Throwable If all $values are null.
+     * @throws \Throwable if all $values are null
      */
     public function first(
-        \Throwable $exception
+        \Throwable $exception,
     ) {
         $results = [];
 
         foreach ($this->subjects as $subject) {
             /** @var array<mixed>|null $subject */
-
-            if (! is_array($subject) || $subject === []) {
+            if (! \is_array($subject) || [] === $subject) {
                 continue;
             }
 
             $values = Toolkit::some($exception, $subject);
 
-            if ($values !== false) {
-                $results[] = array_slice($values, 0)[0];
+            if (false !== $values) {
+                $results[] = \array_slice($values, 0)[0];
+
                 continue;
             }
         }
@@ -143,12 +145,12 @@ final class ArrayFilter
         foreach ($this->subjects as $subject) {
             $payload = [];
 
-            if ($subject !== []) {
+            if ([] !== $subject) {
                 $payload['permissions'] = [];
 
                 foreach ($subject as $permission) {
                     /** @var array{permission_name?: string, resource_server_identifier?: string} $permission */
-                    if (isset($permission['permission_name']) && isset($permission['resource_server_identifier'])) {
+                    if (isset($permission['permission_name'], $permission['resource_server_identifier'])) {
                         $payload['permissions'][] = (object) $permission;
                     }
                 }

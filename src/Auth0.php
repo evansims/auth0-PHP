@@ -52,13 +52,13 @@ final class Auth0 implements Auth0Interface
     /**
      * Auth0 Constructor.
      *
-     * @param SdkConfiguration|array<mixed> $configuration Required. Base configuration options for the SDK. See the SdkConfiguration class constructor for options.
+     * @param  array<mixed>|SdkConfiguration  $configuration  Required. Base configuration options for the SDK. See the SdkConfiguration class constructor for options.
      */
     public function __construct(
-        $configuration
+        $configuration,
     ) {
         // If we're passed an array, construct a new SdkConfiguration from that structure.
-        if (is_array($configuration)) {
+        if (\is_array($configuration)) {
             $configuration = new SdkConfiguration($configuration);
         }
 
@@ -68,7 +68,7 @@ final class Auth0 implements Auth0Interface
 
     public function authentication(): AuthenticationInterface
     {
-        if ($this->authentication === null) {
+        if (null === $this->authentication) {
             $this->authentication = new Authentication($this->configuration);
         }
 
@@ -77,7 +77,7 @@ final class Auth0 implements Auth0Interface
 
     public function management(): ManagementInterface
     {
-        if ($this->management === null) {
+        if (null === $this->management) {
             $this->management = new Management($this->configuration);
         }
 
@@ -91,14 +91,14 @@ final class Auth0 implements Auth0Interface
 
     public function login(
         ?string $redirectUrl = null,
-        ?array $params = null
+        ?array $params = null,
     ): string {
         $this->deferStateSaving();
 
-        $params = $params ?? [];
+        $params ??= [];
         $state = $params['state'] ?? $this->getTransientStore()->issue('state');
-        $params['nonce'] = $params['nonce'] ?? $this->getTransientStore()->issue('nonce');
-        $params['max_age'] = $params['max_age'] ?? $this->configuration()->getTokenMaxAge();
+        $params['nonce'] ??= $this->getTransientStore()->issue('nonce');
+        $params['max_age'] ??= $this->configuration()->getTokenMaxAge();
 
         unset($params['state']);
 
@@ -109,7 +109,7 @@ final class Auth0 implements Auth0Interface
             $this->getTransientStore()->store('code_verifier', $codeVerifier);
         }
 
-        if ($params['max_age'] !== null) {
+        if (null !== $params['max_age']) {
             $this->getTransientStore()->store('max_age', (string) $params['max_age']);
         }
 
@@ -120,30 +120,30 @@ final class Auth0 implements Auth0Interface
 
     public function signup(
         ?string $redirectUrl = null,
-        ?array $params = null
+        ?array $params = null,
     ): string {
         $params = Toolkit::merge([
             'screen_hint' => 'signup',
         ], $params);
 
-        /** @var array<int|string|null>|null $params */
+        /* @var array<int|string|null>|null $params */
 
         return $this->login($redirectUrl, $params);
     }
 
     public function handleInvitation(
         ?string $redirectUrl = null,
-        ?array $params = null
+        ?array $params = null,
     ): ?string {
         $invite = $this->getInvitationParameters();
 
-        if ($invite !== null) {
+        if (null !== $invite) {
             $params = Toolkit::merge([
-                'invitation' => $invite['invitation'],
+                'invitation'   => $invite['invitation'],
                 'organization' => $invite['organization'],
             ], $params);
 
-            /** @var array<int|string|null>|null $params */
+            /* @var array<int|string|null>|null $params */
 
             return $this->login($redirectUrl, $params);
         }
@@ -153,7 +153,7 @@ final class Auth0 implements Auth0Interface
 
     public function logout(
         ?string $returnUri = null,
-        ?array $params = null
+        ?array $params = null,
     ): string {
         $this->clear();
 
@@ -161,7 +161,7 @@ final class Auth0 implements Auth0Interface
     }
 
     public function clear(
-        bool $transient = true
+        bool $transient = true,
     ): self {
         $this->deferStateSaving();
 
@@ -192,18 +192,18 @@ final class Auth0 implements Auth0Interface
         ?int $tokenMaxAge = null,
         ?int $tokenLeeway = null,
         ?int $tokenNow = null,
-        ?int $tokenType = null
+        ?int $tokenType = null,
     ): TokenInterface {
-        $tokenType = $tokenType ?? Token::TYPE_ID_TOKEN;
-        $tokenNonce = $tokenNonce ?? $this->getTransientStore()->getOnce('nonce') ?? null;
-        $tokenMaxAge = $tokenMaxAge ?? $this->getTransientStore()->getOnce('max_age') ?? null;
+        $tokenType ??= Token::TYPE_ID_TOKEN;
+        $tokenNonce ??= $this->getTransientStore()->getOnce('nonce') ?? null;
+        $tokenMaxAge ??= $this->getTransientStore()->getOnce('max_age') ?? null;
         $tokenIssuer = null;
 
         $token = new Token($this->configuration, $token, $tokenType);
         $token->verify();
 
         // If pulled from transient storage, $tokenMaxAge might be a string.
-        if ($tokenMaxAge !== null) {
+        if (null !== $tokenMaxAge) {
             $tokenMaxAge = (int) $tokenMaxAge;
         }
 
@@ -214,7 +214,7 @@ final class Auth0 implements Auth0Interface
             $tokenNonce,
             $tokenMaxAge,
             $tokenLeeway,
-            $tokenNow
+            $tokenNow,
         );
 
         // Ensure transient-stored values are cleared, even if overriding values were passed to the  method.
@@ -227,33 +227,36 @@ final class Auth0 implements Auth0Interface
     public function exchange(
         ?string $redirectUri = null,
         ?string $code = null,
-        ?string $state = null
+        ?string $state = null,
     ): bool {
         [$redirectUri, $code, $state] = Toolkit::filter([$redirectUri, $code, $state])->string()->trim();
 
-        $code = $code ?? $this->getRequestParameter('code');
-        $state = $state ?? $this->getRequestParameter('state');
+        $code ??= $this->getRequestParameter('code');
+        $state ??= $this->getRequestParameter('state');
         $codeVerifier = null;
         $user = null;
 
         $this->clear(false);
         $this->deferStateSaving();
 
-        if ($code === null) {
+        if (null === $code) {
             $this->clear();
+
             throw \Auth0\SDK\Exception\StateException::missingCode();
         }
 
-        if ($state === null || ! $this->getTransientStore()->verify('state', $state)) {
+        if (null === $state || ! $this->getTransientStore()->verify('state', $state)) {
             $this->clear();
+
             throw \Auth0\SDK\Exception\StateException::invalidState();
         }
 
         if ($this->configuration()->getUsePkce()) {
             $codeVerifier = $this->getTransientStore()->getOnce('code_verifier');
 
-            if ($codeVerifier === null) {
+            if (null === $codeVerifier) {
                 $this->clear();
+
                 throw \Auth0\SDK\Exception\StateException::missingCodeVerifier();
             }
         }
@@ -262,15 +265,16 @@ final class Auth0 implements Auth0Interface
 
         if (! HttpResponse::wasSuccessful($response)) {
             $this->clear();
+
             throw \Auth0\SDK\Exception\StateException::failedCodeExchange();
         }
 
         $response = HttpResponse::decodeContent($response);
 
         /** @var array{access_token?: string, scope?: string, refresh_token?: string, id_token?: string, expires_in?: int|string} $response */
-
-        if (! isset($response['access_token']) || trim($response['access_token']) === '') {
+        if (! isset($response['access_token']) || '' === trim($response['access_token'])) {
             $this->clear();
+
             throw \Auth0\SDK\Exception\StateException::badAccessToken();
         }
 
@@ -287,6 +291,7 @@ final class Auth0 implements Auth0Interface
         if (isset($response['id_token'])) {
             if (! $this->getTransientStore()->isset('nonce')) {
                 $this->clear();
+
                 throw \Auth0\SDK\Exception\StateException::missingNonce();
             }
 
@@ -299,7 +304,7 @@ final class Auth0 implements Auth0Interface
             $this->setAccessTokenExpiration($expiresIn);
         }
 
-        if ($user === null || $this->configuration()->getQueryUserInfo()) {
+        if (null === $user || $this->configuration()->getQueryUserInfo()) {
             $response = $this->authentication()->userInfo($response['access_token']);
 
             if (HttpResponse::wasSuccessful($response)) {
@@ -307,7 +312,7 @@ final class Auth0 implements Auth0Interface
             }
         }
 
-        /** @var array<array<mixed>|int|string>|null $user */
+        /* @var array<array<mixed>|int|string>|null $user */
 
         $this->setUser($user ?? []);
         $this->deferStateSaving(false);
@@ -316,13 +321,14 @@ final class Auth0 implements Auth0Interface
     }
 
     public function renew(
-        ?array $params = null
+        ?array $params = null,
     ): self {
         $this->deferStateSaving();
         $refreshToken = $this->getState()->getRefreshToken();
 
-        if ($refreshToken === null) {
+        if (null === $refreshToken) {
             $this->clear();
+
             throw \Auth0\SDK\Exception\StateException::failedRenewTokenMissingRefreshToken();
         }
 
@@ -330,9 +336,9 @@ final class Auth0 implements Auth0Interface
         $response = HttpResponse::decodeContent($response);
 
         /** @var array{access_token?: string, scope?: string, refresh_token?: string, id_token?: string, expires_in?: int|string} $response */
-
-        if (! isset($response['access_token']) || trim($response['access_token']) === '') {
+        if (! isset($response['access_token']) || '' === trim($response['access_token'])) {
             $this->clear();
+
             throw \Auth0\SDK\Exception\StateException::failedRenewTokenMissingAccessToken();
         }
 
@@ -364,7 +370,7 @@ final class Auth0 implements Auth0Interface
     {
         $user = $this->getState()->getUser();
 
-        if ($user === null) {
+        if (null === $user) {
             return null;
         }
 
@@ -376,13 +382,13 @@ final class Auth0 implements Auth0Interface
         $refreshToken = $this->getState()->getRefreshToken();
 
         return (object) [
-            'user' => $user,
-            'idToken' => $idToken,
-            'accessToken' => $accessToken,
-            'accessTokenScope' => $accessTokenScope ?? [],
+            'user'                  => $user,
+            'idToken'               => $idToken,
+            'accessToken'           => $accessToken,
+            'accessTokenScope'      => $accessTokenScope ?? [],
             'accessTokenExpiration' => $accessTokenExpiration,
-            'accessTokenExpired' => $accessTokenExpired,
-            'refreshToken' => $refreshToken,
+            'accessTokenExpired'    => $accessTokenExpired,
+            'refreshToken'          => $refreshToken,
         ];
     }
 
@@ -421,50 +427,50 @@ final class Auth0 implements Auth0Interface
         ?array $post = null,
         ?array $server = null,
         ?array $haystack = null,
-        ?array $needles = null
+        ?array $needles = null,
     ): ?TokenInterface {
-        if ($get !== null && count($get) >= 1 && count($_GET) >= 1) {
+        if (null !== $get && \count($get) >= 1 && \count($_GET) >= 1) {
             foreach ($get as $parameterName) {
-                if (isset($_GET[$parameterName]) && is_string($_GET[$parameterName])) {
+                if (isset($_GET[$parameterName]) && \is_string($_GET[$parameterName])) {
                     $candidate = $this->processBearerToken($_GET[$parameterName]);
 
-                    if ($candidate !== null) {
+                    if (null !== $candidate) {
                         return $candidate;
                     }
                 }
             }
         }
 
-        if ($post !== null && count($post) >= 1 && count($_POST) >= 1) {
+        if (null !== $post && \count($post) >= 1 && \count($_POST) >= 1) {
             foreach ($post as $parameterName) {
-                if (isset($_POST[$parameterName]) && is_string($_POST[$parameterName])) {
+                if (isset($_POST[$parameterName]) && \is_string($_POST[$parameterName])) {
                     $candidate = $this->processBearerToken($_POST[$parameterName]);
 
-                    if ($candidate !== null) {
+                    if (null !== $candidate) {
                         return $candidate;
                     }
                 }
             }
         }
 
-        if ($server !== null && count($server) >= 1 && count($_SERVER) >= 1) {
+        if (null !== $server && \count($server) >= 1 && \count($_SERVER) >= 1) {
             foreach ($server as $parameterName) {
-                if (isset($_SERVER[$parameterName]) && is_string($_SERVER[$parameterName])) {
+                if (isset($_SERVER[$parameterName]) && \is_string($_SERVER[$parameterName])) {
                     $candidate = $this->processBearerToken($_SERVER[$parameterName]);
 
-                    if ($candidate !== null) {
+                    if (null !== $candidate) {
                         return $candidate;
                     }
                 }
             }
         }
 
-        if ($needles !== null && $haystack !== null && count($needles) >= 1 && count($haystack) >= 1) {
+        if (null !== $needles && null !== $haystack && \count($needles) >= 1 && \count($haystack) >= 1) {
             foreach ($needles as $needle) {
                 if (isset($haystack[$needle])) {
                     $candidate = $this->processBearerToken($haystack[$needle]);
 
-                    if ($candidate !== null) {
+                    if (null !== $candidate) {
                         return $candidate;
                     }
                 }
@@ -475,7 +481,7 @@ final class Auth0 implements Auth0Interface
     }
 
     public function setIdToken(
-        string $idToken
+        string $idToken,
     ): self {
         $this->getState()->setIdToken($idToken);
 
@@ -487,7 +493,7 @@ final class Auth0 implements Auth0Interface
     }
 
     public function setUser(
-        array $user
+        array $user,
     ): self {
         $this->getState()->setUser($user);
 
@@ -499,7 +505,7 @@ final class Auth0 implements Auth0Interface
     }
 
     public function setAccessToken(
-        string $accessToken
+        string $accessToken,
     ): self {
         $this->getState()->setAccessToken($accessToken);
 
@@ -511,7 +517,7 @@ final class Auth0 implements Auth0Interface
     }
 
     public function setRefreshToken(
-        string $refreshToken
+        string $refreshToken,
     ): self {
         $this->getState()->setRefreshToken($refreshToken);
 
@@ -523,7 +529,7 @@ final class Auth0 implements Auth0Interface
     }
 
     public function setAccessTokenScope(
-        array $accessTokenScope
+        array $accessTokenScope,
     ): self {
         $this->getState()->setAccessTokenScope($accessTokenScope);
 
@@ -535,7 +541,7 @@ final class Auth0 implements Auth0Interface
     }
 
     public function setAccessTokenExpiration(
-        int $accessTokenExpiration
+        int $accessTokenExpiration,
     ): self {
         $this->getState()->setAccessTokenExpiration($accessTokenExpiration);
 
@@ -549,17 +555,17 @@ final class Auth0 implements Auth0Interface
     public function getRequestParameter(
         string $parameterName,
         int $filter = FILTER_SANITIZE_FULL_SPECIAL_CHARS,
-        array $filterOptions = []
+        array $filterOptions = [],
     ): ?string {
         $responseMode = $this->configuration()->getResponseMode();
 
         // @phpstan-ignore-next-line
-        if (isset($_GET) && [] !== $_GET && ($responseMode === 'query' && isset($_GET[$parameterName]) && is_string($_GET[$parameterName]))) {
+        if (isset($_GET) && [] !== $_GET && ('query' === $responseMode && isset($_GET[$parameterName]) && \is_string($_GET[$parameterName]))) {
             return filter_var(trim($_GET[$parameterName]), $filter, $filterOptions);
         }
 
         // @phpstan-ignore-next-line
-        if (isset($_POST) && [] !== $_POST && ($responseMode === 'form_post' && isset($_POST[$parameterName]) && is_string($_POST[$parameterName]))) {
+        if (isset($_POST) && [] !== $_POST && ('form_post' === $responseMode && isset($_POST[$parameterName]) && \is_string($_POST[$parameterName]))) {
             return filter_var(trim($_POST[$parameterName]), $filter, $filterOptions);
         }
 
@@ -571,9 +577,9 @@ final class Auth0 implements Auth0Interface
         $code = $this->getRequestParameter('code');
         $state = $this->getRequestParameter('state');
 
-        if ($code !== null && $state !== null) {
+        if (null !== $code && null !== $state) {
             return (object) [
-                'code' => $code,
+                'code'  => $code,
                 'state' => $state,
             ];
         }
@@ -587,10 +593,10 @@ final class Auth0 implements Auth0Interface
         $orgId = $this->getRequestParameter('organization');
         $orgName = $this->getRequestParameter('organization_name');
 
-        if ($invite !== null && $orgId !== null && $orgName !== null) {
+        if (null !== $invite && null !== $orgId && null !== $orgName) {
             return [
-                'invitation' => $invite,
-                'organization' => $orgId,
+                'invitation'       => $invite,
+                'organization'     => $orgId,
                 'organizationName' => $orgName,
             ];
         }
@@ -603,7 +609,7 @@ final class Auth0 implements Auth0Interface
      */
     private function getTransientStore(): TransientStoreHandler
     {
-        if ($this->transient === null) {
+        if (null === $this->transient) {
             $this->transient = new TransientStoreHandler($this->configuration()->getTransientStorage());
         }
 
@@ -615,7 +621,7 @@ final class Auth0 implements Auth0Interface
      */
     private function getState(bool $reset = false): SdkState
     {
-        if ($this->state === null || $reset) {
+        if (null === $this->state || $reset) {
             $state = [];
 
             if ($this->configuration()->hasSessionStorage()) {
@@ -634,8 +640,7 @@ final class Auth0 implements Auth0Interface
                     $expires = $this->configuration()->getSessionStorage()->get('accessTokenExpiration');
 
                     /** @var int|string|null $expires */
-
-                    if ($expires !== null) {
+                    if (null !== $expires) {
                         $state['accessTokenExpiration'] = (int) $expires;
                     }
                 }
@@ -655,10 +660,10 @@ final class Auth0 implements Auth0Interface
      * Defer saving transient or session states to destination medium.
      * Improves performance during large blocks of changes.
      *
-     * @param bool $deferring Whether to defer persisting the storage state.
+     * @param  bool  $deferring  whether to defer persisting the storage state
      */
     private function deferStateSaving(
-        bool $deferring = true
+        bool $deferring = true,
     ): self {
         if ($this->configuration()->hasSessionStorage()) {
             $this->configuration()->getSessionStorage()->defer($deferring);
@@ -672,12 +677,12 @@ final class Auth0 implements Auth0Interface
     }
 
     private function processBearerToken(
-        string $token
+        string $token,
     ): ?TokenInterface {
         $token = trim($token);
-        $token = substr($token, 0, 7) === 'Bearer ' ? trim(substr($token, 7)) : $token;
+        $token = 'Bearer ' === mb_substr($token, 0, 7) ? trim(mb_substr($token, 7)) : $token;
 
-        if (strlen($token) >= 1) {
+        if ('' !== $token) {
             try {
                 return $this->decode($token, null, null, null, null, null, null, \Auth0\SDK\Token::TYPE_TOKEN);
             } catch (\Auth0\SDK\Exception\InvalidTokenException $exception) {

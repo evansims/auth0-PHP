@@ -19,10 +19,10 @@ final class StringFilter
     /**
      * StringFilter constructor.
      *
-     * @param array<string|null> $subjects An array of string or null values.
+     * @param  array<string|null>  $subjects  an array of string or null values
      */
     public function __construct(
-        array $subjects
+        array $subjects,
     ) {
         $this->subjects = $subjects;
     }
@@ -37,15 +37,17 @@ final class StringFilter
         $results = [];
 
         foreach ($this->subjects as $subject) {
-            if (! is_string($subject)) {
+            if (! \is_string($subject)) {
                 $results[] = null;
+
                 continue;
             }
 
             $value = trim($subject);
 
-            if (mb_strlen($value) === 0) {
+            if (0 === mb_strlen($value)) {
                 $results[] = null;
+
                 continue;
             }
 
